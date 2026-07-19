@@ -59,3 +59,24 @@ def test_explain_recommendation_returns_non_empty_string():
     explanation = rec.explain_recommendation(user, song)
     assert isinstance(explanation, str)
     assert explanation.strip() != ""
+
+
+def test_recommend_degrades_gracefully_when_no_genre_or_mood_match():
+    # Neither catalog song is "hiphop" or "energetic", so scoring can only
+    # fall back to the energy-closeness signal. This should not crash and
+    # should not fabricate a genre/mood match that doesn't exist.
+    user = UserProfile(
+        favorite_genre="hiphop",
+        favorite_mood="energetic",
+        target_energy=0.6,
+        likes_acoustic=False,
+    )
+    rec = make_small_recommender()
+    results = rec.recommend(user, k=2)
+
+    assert len(results) == 2
+    for song in results:
+        explanation = rec.explain_recommendation(user, song)
+        assert "genre matches" not in explanation
+        assert "mood matches" not in explanation
+        assert "energy" in explanation
